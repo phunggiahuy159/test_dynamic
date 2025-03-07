@@ -36,7 +36,7 @@ class CFDTM(nn.Module):
         self.num_topics = num_topics
         self.beta_temp = beta_temp
         self.train_time_wordfreq = train_time_wordfreq
-        self.encoder = MLPEncoder(vocab_size, num_topics, en_units, dropout)
+        self.encoder = MLPEncoder(vocab_size, num_topics, en_units, dropout,num_experts=num_times)
 
         self.a = 1 * np.ones((1, num_topics)).astype(np.float32)
         self.mu2 = nn.Parameter(torch.as_tensor((np.log(self.a).T - np.mean(np.log(self.a), 1)).T))
@@ -71,8 +71,8 @@ class CFDTM(nn.Module):
         cost = torch.sum(x ** 2, axis=-1, keepdim=True) + torch.sum(y ** 2, axis=-1) - 2 * torch.matmul(x, y.t())
         return cost
 
-    def get_theta(self, x, times=None):
-        theta, mu, logvar = self.encoder(x)
+    def get_theta(self, x, times):
+        theta, mu, logvar = self.encoder(x,times)
         if self.training:
             return theta, mu, logvar
 
@@ -102,7 +102,7 @@ class CFDTM(nn.Module):
     def forward(self, x, times):
         loss = 0.
 
-        theta, mu, logvar = self.get_theta(x)
+        theta, mu, logvar = self.get_theta(x,times)
         kl_theta = self.get_KL(mu, logvar)
 
         loss += kl_theta
